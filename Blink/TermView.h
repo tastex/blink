@@ -41,6 +41,7 @@ extern NSString * const TermViewAutoRepeateSeq;
 @protocol TerminalDelegate <NSObject>
 
 - (void)write:(NSString *)input;
+- (void)selectParentVC;
 
 @optional
 - (void)terminalIsReady;

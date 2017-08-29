@@ -37,11 +37,13 @@
 #import "ScreenController.h"
 #import "SmartKeysController.h"
 #import "TermController.h"
+#import "LayoutViewController.h"
 
 
 @interface SpaceController () <UIPageViewControllerDataSource, UIPageViewControllerDelegate,
   UIGestureRecognizerDelegate, TermControlDelegate>
 
+@property (readonly) LayoutViewController *layoutVC;
 @property (readonly) TermController *currentTerm;
 
 @end
@@ -109,6 +111,7 @@
 
 - (void)applicationWillTerminate:(UIApplication *)application
 {
+  //TODO _viewports contains LayoutViewController's
   [_viewports enumerateObjectsUsingBlock:^(TermController *term, NSUInteger idx, BOOL * _Nonnull stop) {
     [term terminate];
   }];
@@ -299,8 +302,12 @@
 }
 
 #pragma mark Spaces
-- (TermController *)currentTerm {
+- (LayoutViewController *)layoutVC {
   return _viewportsController.viewControllers[0];
+}
+
+- (TermController *)currentTerm {
+  return self.layoutVC.selectedVC;
 }
 
 - (UIPageControl *)pageControl
@@ -338,7 +345,7 @@
 
   UIPageControl *pages = [self pageControl];
 
-  NSInteger idx = [_viewports indexOfObject:self.currentTerm];
+  NSInteger idx = [_viewports indexOfObject:self.layoutVC];
   NSString *title = self.currentTerm.terminal.title.length ? self.currentTerm.terminal.title : @"blink";
   NSString *geometry = [NSString stringWithFormat:@"%d x %d", self.currentTerm.terminal.rowCount, self.currentTerm.terminal.columnCount];
 
@@ -362,7 +369,7 @@
 
 - (void)removeCurrentSpace {
   
-  NSInteger idx = [_viewports indexOfObject:self.currentTerm];
+  NSInteger idx = [_viewports indexOfObject:self.layoutVC];
   if(idx == NSNotFound) {
     return;
   }
@@ -404,8 +411,8 @@
 
 - (void)createShellAnimated:(BOOL)animated completion:(void (^)(BOOL finished))completion
 {
-  TermController *term = [[TermController alloc] init];
-  term.delegate = self;
+  LayoutViewController *layout = [[LayoutViewController alloc] init];
+  layout.delegate = self;
 
   if (_viewports == nil) {
     _viewports = [[NSMutableArray alloc] init];
@@ -413,20 +420,20 @@
   NSInteger numViewports = [_viewports count];
 
   if (numViewports == 0) {
-    [_viewports addObject:term];
+    [_viewports addObject:layout];
   } else {
-    NSInteger idx = [_viewports indexOfObject:self.currentTerm];
+    NSInteger idx = [_viewports indexOfObject:self.layoutVC];
     if (idx == numViewports - 1) {
       // If it is the last one, insert there.
-      [_viewports addObject:term];
+      [_viewports addObject:layout];
     } else {
       // Insert next to the current terminal.
-      [_viewports insertObject:term atIndex:idx + 1];
+      [_viewports insertObject:layout atIndex:idx + 1];
     }
   }
 
   __weak typeof(self) weakSelf = self;
-  [_viewportsController setViewControllers:@[ term ]
+  [_viewportsController setViewControllers:@[ layout ]
 				 direction:UIPageViewControllerNavigationDirectionForward
 				  animated:animated
 				completion:^(BOOL didComplete) {
@@ -503,6 +510,26 @@
    [UIKeyCommand keyCommandWithInput: @"," modifierFlags: [BKUserConfigurationManager shortCutModifierFlags]
                               action: @selector(showConfig:)
                 discoverabilityTitle: @"Show config"],
+                  
+   [UIKeyCommand keyCommandWithInput: @"j" modifierFlags: [BKUserConfigurationManager shortCutModifierFlags]
+                              action: @selector(splitVCHorizontally:)
+                discoverabilityTitle: @"+H"],
+   [UIKeyCommand keyCommandWithInput: @"n" modifierFlags: [BKUserConfigurationManager shortCutModifierFlags]
+                              action: @selector(splitVCVertically:)
+                discoverabilityTitle: @"+V"],
+   
+   [UIKeyCommand keyCommandWithInput: @"k" modifierFlags: [BKUserConfigurationManager shortCutModifierFlags]
+                              action: @selector(changeLayoutType:)
+                discoverabilityTitle: @"=H"],
+   [UIKeyCommand keyCommandWithInput: @"l" modifierFlags: [BKUserConfigurationManager shortCutModifierFlags]
+                              action: @selector(changeLayoutType:)
+                discoverabilityTitle: @"=V"],
+   [UIKeyCommand keyCommandWithInput: @";" modifierFlags: [BKUserConfigurationManager shortCutModifierFlags]
+                              action: @selector(changeLayoutType:)
+                discoverabilityTitle: @"1+H"],
+   [UIKeyCommand keyCommandWithInput: @"'" modifierFlags: [BKUserConfigurationManager shortCutModifierFlags]
+                              action: @selector(changeLayoutType:)
+                discoverabilityTitle: @"1+V"],
   nil];
   
   for (NSInteger i = 1; i < 11; i++) {
@@ -580,7 +607,7 @@
 
 - (void)nextShell:(UIKeyCommand *)cmd
 {
-  NSInteger idx = [_viewports indexOfObject:self.currentTerm];
+  NSInteger idx = [_viewports indexOfObject:self.layoutVC];
   if(idx == NSNotFound) {
     return;
   }
@@ -592,7 +619,7 @@
 
 - (void)prevShell:(UIKeyCommand *)cmd
 {
-  NSInteger idx = [_viewports indexOfObject:self.currentTerm];
+  NSInteger idx = [_viewports indexOfObject:self.layoutVC];
   if(idx == NSNotFound) {
     return;
   }
@@ -604,7 +631,7 @@
 
 - (void)switchToShellN:(UIKeyCommand *)cmd
 {
-  NSInteger idx = [_viewports indexOfObject:self.currentTerm];
+  NSInteger idx = [_viewports indexOfObject:self.layoutVC];
   if(idx == NSNotFound) {
     return;
   }
@@ -630,11 +657,27 @@
               animated: YES];
 }
 
+# pragma mark Layout
+
+- (void)splitVCHorizontally:(UIKeyCommand *)cmd
+{
+  [self.layoutVC splitVCHorizontally];
+}
+
+- (void)splitVCVertically:(UIKeyCommand *)cmd
+{
+  [self.layoutVC splitVCVertically];
+}
+
+- (void)changeLayoutType:(UIKeyCommand *)cmd {
+  self.layoutVC.currentType = cmd.discoverabilityTitle;
+}
+
 # pragma moving spaces
 
 - (void)moveAllShellsFromSpaceController:(SpaceController *)spaceController
 {
-  for (TermController *ctrl in spaceController->_viewports) {
+  for (LayoutViewController *ctrl in spaceController->_viewports) {
     ctrl.delegate = self;
     [_viewports addObject:ctrl];
   }
@@ -644,9 +687,9 @@
 
 - (void)moveCurrentShellFromSpaceController:(SpaceController *)spaceController
 {
-  TermController *term = spaceController.currentTerm;
-  term.delegate = self;
-  [_viewports addObject:term];
+  LayoutViewController *layout = spaceController.layoutVC;
+  layout.delegate = self;
+  [_viewports addObject:layout];
   [spaceController removeCurrentSpace];
   [self displayHUD];
 }
