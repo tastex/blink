@@ -38,6 +38,7 @@
 #import "MCPSession.h"
 #import "Session.h"
 #import "fterm.h"
+#import "LayoutViewController.h"
 
 static NSDictionary *bkModifierMaps = nil;
 
@@ -68,6 +69,11 @@ static NSDictionary *bkModifierMaps = nil;
   // Trasform the string and write it, with the correct sequence
   const char *str = [input UTF8String];
   write(_pinput[1], str, [input lengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
+}
+
+- (void)selectParentVC {
+  LayoutViewController *layoutVC = (LayoutViewController *) self.parentViewController;
+  [layoutVC setSelectedVC: self];
 }
 
 - (void)loadView
@@ -203,6 +209,10 @@ static NSDictionary *bkModifierMaps = nil;
   [_terminal.webView.configuration.userContentController removeScriptMessageHandlerForName:@"interOp"];
 
   [_session kill];
+  
+  LayoutViewController *parent = (LayoutViewController *) self.parentViewController;
+  [self.view removeFromSuperview];
+  [parent deleteVC:self];
 }
 
 - (void)viewDidLoad

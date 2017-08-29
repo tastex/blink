@@ -539,6 +539,8 @@ NSString *const TermViewAutoRepeateSeq = @"autoRepeatSeq:";
   cover.hidden = YES;
 
   [_webView evaluateJavaScript:@"focusTerm();" completionHandler:nil];
+  
+  [_delegate selectParentVC];
   return [super becomeFirstResponder];
 }
 
