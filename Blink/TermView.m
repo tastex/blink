@@ -202,6 +202,7 @@ NSString *const TermViewAutoRepeateSeq = @"autoRepeatSeq:";
   BOOL _disableAccents;
   BOOL _dismissInput;
   BOOL _pasteMenu;
+  BOOL _layoutMenu;
   NSMutableArray<UIKeyCommand *> *_kbdCommands;
   SmartKeysController *_smartKeys;
   UIView *cover;
@@ -492,20 +493,50 @@ NSString *const TermViewAutoRepeateSeq = @"autoRepeatSeq:";
         setMenuVisible:NO
               animated:YES];
     } else {
+      _layoutMenu = NO;
       [[UIMenuController sharedMenuController] setTargetRect:self.frame
                                                       inView:self];
 
       UIMenuItem *pasteItem = [[UIMenuItem alloc] initWithTitle:@"Paste"
                                                          action:@selector(yank:)];
-
+      
+      UIMenuItem *layoutItem = [[UIMenuItem alloc] initWithTitle:@"Layout"
+                                                         action:@selector(showLayoutMenu)];
+      
       [[UIMenuController sharedMenuController]
-        setMenuItems:@[ pasteItem ]];
+        setMenuItems:@[pasteItem, layoutItem]];
       [[UIMenuController sharedMenuController]
         setMenuVisible:YES
               animated:YES];
     }
     _pasteMenu = !_pasteMenu;
   }
+}
+
+- (void)showLayoutMenu
+{
+  _layoutMenu = YES;
+  [[UIMenuController sharedMenuController] setTargetRect:self.frame
+                                                  inView:self];
+  
+  NSArray *layoutMenuItemTitles= [[NSArray alloc] initWithObjects:@"+H", @"+V", @"=H", @"=V", @"1+H", @"1+V", nil];
+  NSMutableArray *layoutMenuItems = [[NSMutableArray alloc] init];
+  for (NSString *title in layoutMenuItemTitles) {
+    [layoutMenuItems addObject:[[UIMenuItem alloc] initWithTitle:title
+                                                          action:@selector(changeLayout:)]];
+  }
+  
+  
+  [[UIMenuController sharedMenuController]
+   setMenuItems: layoutMenuItems];
+  [[UIMenuController sharedMenuController]
+   setMenuVisible:YES
+   animated:YES];
+}
+
+-(void)changeLayout:(id)sender
+{
+  
 }
 
 - (void)handlePinch:(UIPinchGestureRecognizer *)gestureRecognizer
@@ -964,8 +995,14 @@ NSString *const TermViewAutoRepeateSeq = @"autoRepeatSeq:";
 {
   if ([sender isKindOfClass:[UIMenuController class]]) {
     // The menu can only perform paste methods
-    if (action == @selector(paste:) || action == @selector(copy:)) {
-      return YES;
+    if (_layoutMenu) {
+      if (action == @selector(changeLayout:)) {
+        return YES;
+      }
+    } else {
+      if (action == @selector(paste:) || action == @selector(copy:) || action == @selector(showLayoutMenu)) {
+        return YES;
+      }
     }
 
     return NO;
