@@ -522,8 +522,9 @@ NSString *const TermViewAutoRepeateSeq = @"autoRepeatSeq:";
   NSArray *layoutMenuItemTitles= [[NSArray alloc] initWithObjects:@"+H", @"+V", @"=H", @"=V", @"1+H", @"1+V", nil];
   NSMutableArray *layoutMenuItems = [[NSMutableArray alloc] init];
   for (NSString *title in layoutMenuItemTitles) {
+    NSString *sel = [NSString stringWithFormat:@"changeLayout_%@", title];
     [layoutMenuItems addObject:[[UIMenuItem alloc] initWithTitle:title
-                                                          action:@selector(changeLayout:)]];
+                                                          action:NSSelectorFromString(sel)]];
   }
   
   
@@ -534,10 +535,31 @@ NSString *const TermViewAutoRepeateSeq = @"autoRepeatSeq:";
    animated:YES];
 }
 
--(void)changeLayout:(id)sender
+
+
+-(void)changeLayout:(NSString *)layoutType
 {
-  
+  [_delegate changeLayoutType:layoutType];
 }
+
+
+- (NSMethodSignature *)methodSignatureForSelector:(SEL)sel {
+  if ([super methodSignatureForSelector:sel]) {
+    return [super methodSignatureForSelector:sel];
+  }
+  return [super methodSignatureForSelector:@selector(changeLayout:)];
+}
+
+- (void)forwardInvocation:(NSInvocation *)invocation {
+  NSString *sel = NSStringFromSelector([invocation selector]);
+  NSRange match = [sel rangeOfString:@"changeLayout_"];
+  if (match.location == 0) {
+    [self changeLayout:[sel substringFromIndex:@"changeLayout_".length]];
+  } else {
+    [super forwardInvocation:invocation];
+  }
+}
+
 
 - (void)handlePinch:(UIPinchGestureRecognizer *)gestureRecognizer
 {
@@ -996,9 +1018,12 @@ NSString *const TermViewAutoRepeateSeq = @"autoRepeatSeq:";
   if ([sender isKindOfClass:[UIMenuController class]]) {
     // The menu can only perform paste methods
     if (_layoutMenu) {
-      if (action == @selector(changeLayout:)) {
+      NSString *sel = NSStringFromSelector(action);
+      NSRange match = [sel rangeOfString:@"changeLayout_"];
+      if (match.location == 0) {
         return YES;
       }
+      return NO;
     } else {
       if (action == @selector(paste:) || action == @selector(copy:) || action == @selector(showLayoutMenu)) {
         return YES;

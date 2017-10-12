@@ -42,6 +42,7 @@ extern NSString * const TermViewAutoRepeateSeq;
 
 - (void)write:(NSString *)input;
 - (void)selectParentVC;
+- (void)changeLayoutType:(NSString *)layoutType;
 
 @optional
 - (void)terminalIsReady;

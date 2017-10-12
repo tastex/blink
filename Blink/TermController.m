@@ -76,6 +76,19 @@ static NSDictionary *bkModifierMaps = nil;
   [layoutVC setSelectedVC: self];
 }
 
+- (void)changeLayoutType:(NSString *)layoutType
+{
+  LayoutViewController *layoutVC = (LayoutViewController *) self.parentViewController;
+  
+  if ([layoutType  isEqualToString: @"+V"]) {
+    [layoutVC splitVCVertically];
+  } else if ([layoutType  isEqualToString: @"+H"]) {
+    [layoutVC splitVCHorizontally];
+  } else {
+    [layoutVC setCurrentType:layoutType];
+  }
+}
+
 - (void)loadView
 {
   [super loadView];
