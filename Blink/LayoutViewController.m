@@ -42,6 +42,15 @@
     [self addVC];
 }
 
+- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id <UIViewControllerTransitionCoordinator>)coordinator
+{
+  [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
+  
+  [coordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext> context) {} completion:^(id<UIViewControllerTransitionCoordinatorContext> context) {
+    [self updateContent];
+  }];
+}
+
 - (void)addVC {
     if ((int) [self.viewControllers count] >= [LayoutViewController maxAmountOfVC]) return;
     
